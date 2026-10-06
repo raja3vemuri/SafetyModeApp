@@ -1,0 +1,6 @@
+{
+  "name": "SignatureCraft - Enterprise Email Signature Generator",
+  "description": "Create, brand-align, and deploy email-safe corporate email signatures with real-time preview, multiple archetypes, and multi-client export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
