@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavTab, SignatureState, TemplateArchetype } from './types';
-import { INITIAL_SIGNATURE_STATE, SAMPLE_PROFILES } from './constants';
+import { INITIAL_SIGNATURE_STATE } from './constants';
 import { Header } from './components/Header';
 import { TemplatePicker } from './components/TemplatePicker';
 import { AccordionEditor } from './components/AccordionEditor';
@@ -10,11 +10,16 @@ import { TemplatesLibraryView } from './components/TemplatesLibraryView';
 import { LivePreviewAndExportView } from './components/LivePreviewAndExportView';
 import { HelpDocsView } from './components/HelpDocsView';
 import { Toast } from './components/Toast';
+import { AuthProvider } from './context/AuthContext';
+import { CloudSignaturesModal } from './components/CloudSignaturesModal';
+import { SavedSignatureRecord } from './services/signatureService';
 
 const STORAGE_KEY = 'signaturecraft_data_v4';
 
-export default function App() {
+function SignatureStudio() {
   const [activeTab, setActiveTab] = useState<NavTab>('signature-editor');
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState<boolean>(false);
+
   const [state, setState] = useState<SignatureState>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -110,19 +115,45 @@ export default function App() {
       const el = document.getElementById('templatePicker');
       el?.scrollIntoView({ behavior: 'smooth' });
     } else if (stepNum === 4) {
-      const exportBtn = document.querySelector('button[title="Copy"]') || document.getElementById('exportSection');
+      const exportBtn = document.getElementById('exportSection');
       exportBtn?.scrollIntoView({ behavior: 'smooth' });
       showToast('Ready for production export!');
     }
   };
 
+  const handleLoadCloudSignature = (record: SavedSignatureRecord) => {
+    setState(prev => ({
+      ...prev,
+      template: (record.template as TemplateArchetype) || prev.template,
+      personal: { ...prev.personal, ...(record.personal || {}) },
+      company: { ...prev.company, ...(record.company || {}) },
+      style: { ...prev.style, ...(record.style || {}) },
+      socials: record.socials || prev.socials,
+      spacingPreset: record.spacingPreset || prev.spacingPreset,
+      socialIconSize: record.socialIconSize || prev.socialIconSize,
+    }));
+  };
+
   return (
-    <div className="min-h-screen bg-[#f8f9ff] text-[#0b1c30] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f4f7fc] text-[#0b1c30] flex flex-col font-sans">
       {/* Toast Feedback Component */}
       <Toast message={toastMsg} />
 
-      {/* Header */}
-      <Header activeTab={activeTab} onSelectTab={setActiveTab} />
+      {/* Cloud Signatures Firestore Modal */}
+      <CloudSignaturesModal
+        isOpen={isCloudModalOpen}
+        onClose={() => setIsCloudModalOpen(false)}
+        currentState={state}
+        onLoadSignature={handleLoadCloudSignature}
+        showToast={showToast}
+      />
+
+      {/* Header with Auth Integration */}
+      <Header
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenCloudSignatures={() => setIsCloudModalOpen(true)}
+      />
 
       {/* Main Content Area */}
       <main className="flex-grow pt-16">
@@ -158,25 +189,26 @@ export default function App() {
         {activeTab === 'signature-editor' && (
           <div className="flex flex-col w-full">
             {/* Page Title & Steps Bar */}
-            <section className="w-full bg-[#ffffff] border-b border-[#e2e8f0] py-5 px-4 sm:px-6 lg:px-8 shadow-xs">
+            <section className="w-full bg-[#ffffff] border-b border-[#cbd5e1] py-5 px-4 sm:px-6 lg:px-8 shadow-xs">
               <div className="max-w-[1560px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-1.5 text-[#006783] mb-1">
+                  <div className="flex items-center gap-1.5 text-[#d29900] mb-1">
                     <span className="material-symbols-outlined text-[18px]">verified</span>
-                    <span className="text-[11px] uppercase tracking-wider font-bold">
+                    <span className="text-[11px] uppercase tracking-wider font-extrabold">
                       Studio Engine v4.2
                     </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#d29900]"></span>
                   </div>
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-[#002956] tracking-tight">
                     EMAIL SIGNATURE GENERATOR
                   </h1>
-                  <p className="text-[13px] sm:text-[14px] text-[#43474f] mt-0.5">
-                    Create, brand-align, and deploy email-safe signatures in minutes.
+                  <p className="text-[13px] sm:text-[14px] text-[#475569] mt-0.5">
+                    Create, brand-align, and deploy email-safe signatures in minutes across any browser.
                   </p>
                 </div>
 
                 {/* 4-Step Indicator */}
-                <div className="flex items-center gap-1 bg-[#eff4ff] p-1.5 rounded-xl border border-[#d6e3ff]">
+                <div className="flex items-center gap-1 bg-[#f1f5f9] p-1.5 rounded-2xl border border-[#cbd5e1]">
                   {[
                     { step: 1, label: 'Template' },
                     { step: 2, label: 'Layout' },
@@ -189,17 +221,17 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => handleStepClick(step)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all cursor-pointer ${
                             isActive
-                              ? 'bg-[#002956] text-[#ffffff] shadow-xs'
-                              : 'text-[#43474f] hover:bg-[#dce9ff] hover:text-[#0b1c30]'
+                              ? 'bg-[#002956] text-white shadow-sm ring-1 ring-[#d29900]'
+                              : 'text-[#475569] hover:bg-white hover:text-[#002956]'
                           }`}
                         >
                           <span
-                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-extrabold ${
                               isActive
-                                ? 'bg-[#57d1fe] text-[#005870]'
-                                : 'bg-[#d3e4fe] text-[#43474f]'
+                                ? 'bg-[#d29900] text-white shadow-xs'
+                                : 'bg-[#e2e8f0] text-[#475569]'
                             }`}
                           >
                             {step}
@@ -207,7 +239,7 @@ export default function App() {
                           <span>{label}</span>
                         </button>
                         {idx < arr.length - 1 && (
-                          <span className="material-symbols-outlined text-[#c3c6d1] text-[16px]">
+                          <span className="material-symbols-outlined text-[#94a3b8] text-[16px]">
                             chevron_right
                           </span>
                         )}
@@ -225,9 +257,9 @@ export default function App() {
             />
 
             {/* Two-Column Responsive Workspace */}
-            <div className="max-w-[1560px] w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            <div className="max-w-[1560px] w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 items-start">
               {/* LEFT COLUMN: SIGNATURE ACCORDION EDITOR (7 cols) */}
-              <div className="lg:col-span-7 xl:col-span-7 flex flex-col gap-4">
+              <div className="xl:col-span-7 flex flex-col gap-4">
                 <AccordionEditor
                   state={state}
                   onChange={setState}
@@ -237,13 +269,14 @@ export default function App() {
                   rememberWorkstation={rememberWorkstation}
                   onToggleRemember={handleToggleRemember}
                   showToast={showToast}
+                  onOpenCloudSignatures={() => setIsCloudModalOpen(true)}
                 />
               </div>
 
-              {/* RIGHT COLUMN: LIVE PREVIEW & EXPORT DOCK (5 cols sticky) */}
+              {/* RIGHT COLUMN: LIVE PREVIEW & EXPORT DOCK (5 cols) */}
               <div
                 id="exportSection"
-                className="lg:col-span-5 xl:col-span-5 flex flex-col gap-5 sticky top-20"
+                className="xl:col-span-5 flex flex-col gap-5 xl:sticky xl:top-20"
               >
                 {/* Simulated Client View */}
                 <EmailClientPreview
@@ -265,17 +298,31 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="w-full bg-[#ffffff] border-t border-[#e2e8f0] mt-12 shadow-[0_-1px_6px_rgba(0,0,0,0.02)]">
-        <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px] text-[#43474f]">
+      <footer className="w-full bg-[#07162c] text-[#94a3b8] border-t border-[#1b3152] mt-12 shadow-inner">
+        <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px]">
           <div className="flex items-center gap-2">
-            <span>© 2024 SignatureCraft Enterprise Studio. Precision Mail Formatting Engine.</span>
+            <span className="w-2 h-2 rounded-full bg-[#d29900] shadow-xs"></span>
+            <span className="text-white font-medium text-[13px]">
+              copy rights reserved by Raja Vemuri @2026
+            </span>
           </div>
           <div className="flex items-center gap-4">
-            <span>DKIM & HTML Standards Compliant</span>
-            <span>v4.2.1-prod</span>
+            <span className="flex items-center gap-1 text-[#d29900] font-semibold">
+              <span className="material-symbols-outlined text-[16px]">verified</span>
+              DKIM & HTML Standards Compliant
+            </span>
+            <span className="text-[#64748b]">v4.2.1-prod</span>
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <SignatureStudio />
+    </AuthProvider>
   );
 }

@@ -24,6 +24,10 @@ export function buildSignatureMarkup(state: SignatureState): string {
   const accentColor = s.colorAccent;
   const bgColor = state.isDarkCanvas ? '#1a202c' : (s.colorBg === '#ffffff' ? 'transparent' : s.colorBg);
 
+  // Contrast-aware icon and CTA text color
+  const isLightAccent = accentColor === '#57d1fe' || accentColor === '#ffffff' || accentColor === '#eff4ff';
+  const accentTextColor = isLightAccent ? '#002956' : '#ffffff';
+
   // Social Links Builder
   let socialIconsHtml = '';
   if (t.social) {
@@ -37,7 +41,7 @@ export function buildSignatureMarkup(state: SignatureState): string {
                 soc => `
               <td style="padding-right:6px;">
                 <a href="${soc.url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; display:inline-block;">
-                  <span style="display:inline-block; width:${state.socialIconSize}px; height:${state.socialIconSize}px; line-height:${state.socialIconSize}px; text-align:center; background-color:${accentColor}; color:#002956; border-radius:4px; font-family:${font}; font-size:${Math.round(
+                  <span style="display:inline-block; width:${state.socialIconSize}px; height:${state.socialIconSize}px; line-height:${state.socialIconSize}px; text-align:center; background-color:${accentColor}; color:${accentTextColor}; border-radius:4px; font-family:${font}; font-size:${Math.round(
                     state.socialIconSize * 0.55
                   )}px; font-weight:bold;">
                     ${soc.label}
@@ -68,7 +72,7 @@ export function buildSignatureMarkup(state: SignatureState): string {
   if (t.calendar && s.calendarUrl) {
     calendarHtml = `
       <div style="margin-top:${spacing.rowGap};">
-        <a href="${s.calendarUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block; font-family:${font}; font-size:${smallSize}; font-weight:600; color:${h1Color}; background-color:${accentColor}; padding:6px 12px; border-radius:4px; text-decoration:none;">
+        <a href="${s.calendarUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block; font-family:${font}; font-size:${smallSize}; font-weight:bold; color:${accentTextColor}; background-color:${accentColor}; padding:6px 12px; border-radius:4px; text-decoration:none;">
           ${s.calendarLabel}
         </a>
       </div>
@@ -288,7 +292,7 @@ export function buildSignatureMarkup(state: SignatureState): string {
       <tr>
         ${t.avatar && p.avatarUrl ? `
         <td valign="top" style="padding-right:14px; text-align:center;">
-          <img src="${p.avatarUrl}" alt="${p.firstName} ${p.lastName}" width="80" height="80" style="display:block; width:80px; height:80px; border-radius:8px; object-fit:cover;" />
+          <img src="${p.avatarUrl}" alt="${p.firstName} ${p.lastName}" width="80" height="80" style="display:block; width:80px; height:80px; min-width:80px; min-height:80px; border-radius:50%; object-fit:cover; border:2px solid ${accentColor};" />
           ${t.logo && c.logoUrl ? `<img src="${c.logoUrl}" alt="${c.name}" width="70" style="display:block; width:70px; height:auto; margin:8px auto 0;" />` : ''}
         </td>` : ''}
         

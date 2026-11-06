@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 2. Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 200;
+
+      allow update: if isOwner(userId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.email == resource.data.email;
+
+      allow delete: if false;
+
+      // 3. User Signatures Subcollection
+      match /signatures/{signatureId} {
+        allow get, list: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && isValidId(signatureId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.id is string
+          && request.resource.data.template in ['classic', 'minimal', 'corporate-logo', 'social', 'executive'];
+
+        allow update: if isOwner(userId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.id == resource.data.id;
+
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}
